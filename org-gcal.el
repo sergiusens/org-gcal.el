@@ -48,6 +48,9 @@
 (require 'cl-lib)
 (require 'rx)
 (require 'subr-x)
+(require 'oauth2-auto)
+(require 'plstore)
+
 
 ;; Customization
 ;;; Code:
@@ -89,6 +92,11 @@
 
 (defcustom org-gcal-client-secret nil
   "Google calendar secret key for OAuth."
+  :group 'org-gcal
+  :type 'string)
+
+(defcustom org-gcal-client-email nil
+  "Google calendar email for OAuth."
   :group 'org-gcal
   :type 'string)
 
@@ -1563,16 +1571,9 @@ delete calendar info from events on calendars you no longer have access to."
          (concat "Please create " org-gcal-token-file " before proceeding."))))))
 
 (defun org-gcal--get-access-token ()
-  (if org-gcal-token-plist
-      (plist-get org-gcal-token-plist :access_token)
-    (progn
-      (if (file-exists-p org-gcal-token-file)
-          (progn
-            (with-temp-buffer (insert-file-contents org-gcal-token-file)
-                              (plist-get (plist-get (read (buffer-string)) :token) :access_token)))
-        (org-gcal--notify
-         (concat org-gcal-token-file " is not exists")
-         (concat "Make " org-gcal-token-file))))))
+  (let ((oauth2-auto-google-client-id org-gcal-client-id)
+        (oauth2-auto-google-client-secret org-gcal-client-secret))
+   (oauth2-auto-access-token-sync org-gcal-client-email 'google))
 
 (defun org-gcal--safe-substring (string from &optional to)
   "Call the `substring' function safely.
